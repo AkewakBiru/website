@@ -1,0 +1,18 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: check-env-files
+        name: Check for .env files
+        entry: grep -q -E '^\.env$'
+        language: system
+        files: ''
+        exclude: ''
+        pass_filenames: false
+        args: []
+-   repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+    -   id: gitleaks
+        name: detect hardcoded secrets
+        entry: gitleaks detect
+        language: golang
