@@ -1,17 +1,19 @@
 {
 	order coraza_waf first
+	order rate_limit before respond
 }
 
 akewak.biru.etco.cloud {
 	tls ./akewak.biru.etco.cloud/cert1.pem ./akewak.biru.etco.cloud/privkey1.pem
-	 coraza_waf {
-  		load_owasp_crs
-  		directives `
-   			Include @crs-setup.conf.example
-   			Include @owasp_crs/*.conf
-   			SecRuleEngine On
-  		`
- 	}
+
+	coraza_waf {
+		load_owasp_crs
+		directives `
+		Include @crs-setup.conf.example
+		Include @owasp_crs/*.conf
+		SecRuleEngine On
+		`
+	}
 
 	redir / /blog
 	@whitelist {
@@ -27,6 +29,20 @@ akewak.biru.etco.cloud {
 	}
 
 	handle @whitelist {
+		rate_limit {
+			zone static {
+				key static
+				events 100
+				window 1m
+			}
+
+			zone dynamic {
+				key {remote_host}
+				events 10
+				window 5s
+			}
+			log_key
+		}
 		reverse_proxy {$UPSTREAMS}
 	}
 
