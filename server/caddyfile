@@ -1,0 +1,36 @@
+{
+	order coraza_waf first
+}
+
+akewak.biru.etco.cloud {
+	tls ./akewak.biru.etco.cloud/cert1.pem ./akewak.biru.etco.cloud/privkey1.pem
+	 coraza_waf {
+  		load_owasp_crs
+  		directives `
+   			Include @crs-setup.conf.example
+   			Include @owasp_crs/*.conf
+   			SecRuleEngine On
+  		`
+ 	}
+
+	redir / /blog
+	@whitelist {
+		path /
+		path /contact
+		path /resume
+		path /blog
+		path /articleEditor
+		path /create
+		path /oauth2/callback
+		path /static/*
+		path /blog/*
+	}
+
+	handle @whitelist {
+		reverse_proxy {$UPSTREAMS}
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+}

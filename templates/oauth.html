@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Oauth</title>
+</head>
+<body>
+	<h1>Oauth Login</h1>
+	{{ if not .AccessToken }}
+	<h2>
+		<a href="https://github.com/login/oauth/authorize?scope={{ join .OAuthConfig.Scopes `.` }}&client_id={{ .OAuthConfig.ClientID }}">Sign in with github</a>
+	</h2>
+	{{ end }}
+	{{ if .UserInfo }}
+	<h2>
+		Hello, {{ .UserInfo.Login }}!
+	</h2>
+	<h3>
+		ID: {{ .UserInfo.ID }}
+	</h3>
+	{{ end }}
+</body>
+</html>
