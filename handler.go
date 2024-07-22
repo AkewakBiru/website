@@ -34,7 +34,7 @@ func blogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	rec, err := GetNumRecords(Db)
 	if err != nil {
-		logger.Error("Read error", zap.Error(err))
+		logger.Warn("Read error", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -56,7 +56,7 @@ func blogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := GetNRecords(Db, pageNum-1, offset)
 	if err != nil {
-		logger.Error("Read error", zap.Error(err))
+		logger.Warn("Read error", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -101,10 +101,10 @@ func authMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 		templ := template.Must(template.New("oauth.html").Funcs(template.FuncMap{"join": strings.Join}).ParseFiles("templates/oauth.html"))
 		session, err := Store.Get(r, "auth-cookie")
 		if err != nil {
-			logger.Error("Error retrieving cookie store", zap.Error(err))
+			logger.Warn("Error retrieving cookie store", zap.Error(err))
 			if err := templ.Execute(w, OauthConfig); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				logger.Error("Error executing template", zap.Error(err))
+				logger.Warn("Error executing template", zap.Error(err))
 			}
 			return
 		}
@@ -114,14 +114,14 @@ func authMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 			logger.Warn("Access token doesn't exist")
 			if err := templ.Execute(w, OauthConfig); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				logger.Error("Error executing template", zap.Error(err))
+				logger.Warn("Error executing template", zap.Error(err))
 			}
 			return
 		}
 
 		req, err := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
 		if err != nil {
-			logger.Error("Failed creating request", zap.Error(err))
+			logger.Warn("Failed creating request", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -130,7 +130,7 @@ func authMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 		req.Header.Set("Accept", "application/vnd.github+json")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			logger.Error("Error getting a response", zap.Error(err))
+			logger.Warn("Error getting a response", zap.Error(err))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -138,13 +138,13 @@ func authMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 
 		var user User
 		if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-			logger.Error("JSON decoding failed", zap.Error(err))
+			logger.Warn("JSON decoding failed", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if user.Login != "AkewakBiru" {
-			logger.Error("User not authorized")
+			logger.Warn("User not authorized")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -156,7 +156,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	token, err := Oauthcfg.Exchange(r.Context(), code)
 	if err != nil {
-		logger.Error("Error exchanging code for token", zap.Error(err))
+		logger.Warn("Error exchanging code for token", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -164,7 +164,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	// save the access token in a cookie
 	session, err := Store.Get(r, "auth-cookie")
 	if err != nil {
-		logger.Error("Error retrieving cookie store", zap.Error(err))
+		logger.Warn("Error retrieving cookie store", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}

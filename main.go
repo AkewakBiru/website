@@ -22,6 +22,7 @@ var (
 	Db       *sql.DB
 	Oauthcfg *oauth2.Config
 	Store    *sessions.CookieStore
+	LogFile  *os.File
 )
 
 type BlogData struct {
@@ -38,25 +39,40 @@ type OauthData struct {
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
 func init() {
-	config := zap.NewProductionConfig()
-	// omit stacktrace except for FATAL level where stacktrace can't be removed
-	config.EncoderConfig.StacktraceKey = zapcore.OmitKey
-	logger = zap.Must(config.Build())
+	var envFile string
+	var environ bool = false
 	if env := os.Getenv("APP_ENV"); env != "PROD" {
-		config = zap.NewDevelopmentConfig()
-		config.EncoderConfig.StacktraceKey = zapcore.OmitKey
+		envFile = ".env.dev"
+	} else {
+		envFile = ".env.prod"
+		environ = true
+	}
+
+	if err := godotenv.Load(envFile); err != nil {
+		log.Fatal("Error loading env file", err)
+	}
+	if environ {
+		handle, err := os.OpenFile("/var/log/app/access.log", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
+		if err != nil {
+			log.Fatal("Error opening/ creating access file", err)
+		}
+		LogFile = handle
+		config := zap.NewProductionEncoderConfig()
+		// omit stacktrace except for FATAL level where stacktrace can't be removed
+		config.StacktraceKey = zapcore.OmitKey
+		outCore := zapcore.NewCore(zapcore.NewJSONEncoder(config), LogFile, zap.InfoLevel)
+		logger = zap.New(outCore)
+	} else {
+		config := zap.NewDevelopmentConfig()
 		logger = zap.Must(config.Build())
 	}
 	defer logger.Sync()
 }
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(err)
-	}
-	connStr := fmt.Sprintf("oracle://%s:%s@%s:%s/%s?TRACE FILE=%s&SSL=enable&SSL Verify=false&WALLET=%s",
+	connStr := fmt.Sprintf("oracle://%s:%s@%s:%s/%s?TRACE FILE=%s&SSL=enable&SSL Verify=false&WALLET=%s/%s",
 		os.Getenv("USERNAME"), os.Getenv("PASSWORD"), os.Getenv("HOST"), os.Getenv("PORT"),
-		os.Getenv("SERVICE"), os.Getenv("TRACE_PATH"), os.Getenv("WALLET_PATH"))
+		os.Getenv("SERVICE"), os.Getenv("TRACE_PATH"), os.Getenv("PWD"), os.Getenv("WALLET_PATH"))
 	db, err := sql.Open("oracle", connStr)
 	DieOnError("error in sql.Open:", err)
 	err = db.Ping()
@@ -83,6 +99,7 @@ func init() {
 
 func DieOnError(msg string, err error) {
 	if err != nil {
+		LogFile.Close()
 		logger.Fatal(msg, zap.Error(err))
 	}
 }
@@ -116,11 +133,13 @@ func createArticle(w http.ResponseWriter, r *http.Request) {
 		Slug: r.FormValue("slug"), Date_posted: time.Now()}); err != nil {
 		logger.Error("create article failed", zap.Error(err))
 	}
-	http.Redirect(w, r, "/blog", http.StatusMovedPermanently)
+	http.Redirect(w, r, "/blog", http.StatusTemporaryRedirect)
 }
 
 func main() {
 	defer Db.Close()
+	defer LogFile.Close()
+
 	fs := http.FileServer(http.Dir("./static"))
 	r := mux.NewRouter()
 	// serve static files

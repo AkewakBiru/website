@@ -1,10 +1,30 @@
 {
 	order coraza_waf first
 	order rate_limit before respond
+
+	# global logger that logs error level and above (for WAF)
+	log {
+		format json
+		level ERROR
+		output file /var/log/caddy/error.json {
+			roll_size 1gb
+			roll_keep 20
+			roll_keep_for 720h
+		}
+	}
 }
 
 akewak.biru.etco.cloud {
 	tls ./akewak.biru.etco.cloud/cert1.pem ./akewak.biru.etco.cloud/privkey1.pem
+
+	log {
+		format json
+		output file /var/log/caddy/access.json {
+			roll_size 1gb
+			roll_keep 20
+			roll_keep_for 720h
+		}
+	}
 
 	coraza_waf {
 		load_owasp_crs

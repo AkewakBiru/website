@@ -15,12 +15,29 @@
 		body {
 			font-family: 'roboto';
 		}
-		div.custom {
-			max-width: 800px;
+		@media (min-width: 768px) {
+			div.custom {
+				max-width: 800px;
+			}
+		}
+		div.custom > * {
+			max-width: 100%;
+			overflow: hidden;
+			box-sizing: border-box;
 		}
 		h1, h2, h3, h4 {
 			margin-top: 16px !important;
 			margin-bottom: 16px !important;
+		}
+		pre {
+			max-width: 100%;
+			white-space: pre-wrap;
+			word-wrap: break-word;
+		}
+		img, table, td {
+		    max-width: 100%;
+		    height: auto;
+		    display: block;
 		}
 		.language-python {
 			background-color: rgba(0, 0, 0, 0.9);
