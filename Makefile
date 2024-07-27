@@ -1,9 +1,27 @@
-APP_ENV := DEV
-HOST_PORT := 3000
+HOME := $(HOME)
 
-build:
-	sudo docker build -t app .
-run:
-	sudo -E docker run -e APP_ENV=${APP_ENV} -p ${HOST_PORT}:3000 --rm -ti app
-.PHONY:
-	build run
+SYSTEM := $(shell uname -s)
+ifeq ($(SYSTEM), Linux)
+	HOME := /home/ubuntu
+endif
+
+all: start
+
+pre:
+	@mkdir -p $(HOME)/data/caddy
+	@mkdir -p $(HOME)/data/backend
+
+start: pre
+	@sudo docker compose -f ./docker-compose.yml up -d
+
+stop:
+	@sudo docker compose -f ./docker-compose.yml down
+
+clean:
+	@sudo docker compose -f ./docker-compose.yml down -v --rmi all
+
+fclean: clean
+	@sudo rm -rf $(HOME)/data/caddy/*
+	@sudo rm -rf $(HOME)/data/backend/*
+
+.PHONY: all pre start stop clean fclean

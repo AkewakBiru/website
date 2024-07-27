@@ -89,7 +89,7 @@ func init() {
 			AuthURL:  "https://github.com/login/oauth/authorize",
 			TokenURL: "https://github.com/login/oauth/access_token",
 		},
-		RedirectURL: fmt.Sprintf("https://%s:%s/oauth2/callback", os.Getenv("SERVER_IP"), os.Getenv("SERVER_PORT")),
+		RedirectURL: "https://akewak.biru.etco.cloud/oauth2/callback",
 		Scopes:      []string{os.Getenv("OAUTH_SCOPE")},
 	}
 
@@ -136,6 +136,12 @@ func createArticle(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/blog", http.StatusTemporaryRedirect)
 }
 
+// healthcheck endpoint
+func test(w http.ResponseWriter, r *http.Request) {
+	_ = r
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func main() {
 	defer Db.Close()
 	defer LogFile.Close()
@@ -144,7 +150,8 @@ func main() {
 	r := mux.NewRouter()
 	// serve static files
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs)).Methods("GET")
-	r.HandleFunc("/blog", chain(blogHandler, loggingMiddleware)).Methods("GET")
+	r.HandleFunc("/test", chain(test, loggingMiddleware))
+	r.HandleFunc("/blog", chain(blogHandler, loggingMiddleware)).Methods("GET", "POST")
 	r.HandleFunc("/articleEditor", chain(articleEditorHandler, authMiddleware, loggingMiddleware))
 	r.HandleFunc("/create", chain(createArticle, authMiddleware, loggingMiddleware)).Methods("POST")
 	r.HandleFunc("/resume", chain(resumeHandler, loggingMiddleware))

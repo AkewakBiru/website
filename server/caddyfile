@@ -18,7 +18,14 @@ akewak.biru.etco.cloud {
 	tls ./akewak.biru.etco.cloud/cert1.pem ./akewak.biru.etco.cloud/privkey1.pem
 
 	log {
-		format json
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace code REDACTED
+				}
+			}
+		}
 		output file /var/log/caddy/access.json {
 			roll_size 1gb
 			roll_keep 20

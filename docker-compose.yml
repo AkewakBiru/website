@@ -1,0 +1,57 @@
+services:
+  backend:
+    image: akewak697/blogapp:backend
+    container_name: backend
+    networks:
+      - myNet
+    volumes:
+      - backend-vol:/var/log/app
+    expose:
+      - "3000"
+    environment:
+      - APP_ENV=PROD
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/test"]
+      interval: 20s
+      timeout: 10s
+      retries: 2
+  caddy:
+    build:
+      args:
+        - UPSTREAMS=backend:3000
+    image: akewak697/blogapp:caddy
+    container_name: caddy
+    networks:
+      - myNet
+    volumes:
+      - caddy-vol:/var/log/caddy
+    ports:
+      - "443:443"
+      - "443:443/udp"
+      - "80:80"
+      - "2019:2019"
+    environment:
+      - UPSTREAMS="backend:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://backend:3000/test"]
+      interval: 20s
+      timeout: 10s
+      retries: 2
+
+networks:
+  myNet:
+
+volumes:
+  caddy-vol:
+    driver_opts:
+      type: local
+      o: "bind"
+      device: /home/ubuntu/data/caddy
+  backend-vol:
+    driver_opts:
+      type: local
+      o: "bind"
+      device: /home/ubuntu/data/backend
